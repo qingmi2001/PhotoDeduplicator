@@ -1,29 +1,65 @@
-name: Build Photo Deduplicator EXE
+name: Build and Release Photo Deduplicator GUI
 
 on:
   push:
     branches: [ "main", "master" ]
+    tags: [ "v*" ]
   workflow_dispatch:
 
+# 必须赋予 contents: write 权限，以便工作流可以自动在 Releases 中创建发布并上传 EXE
+permissions:
+  contents: write
+
 jobs:
-  build-windows:
+  build-and-release:
     runs-on: windows-latest
 
     steps:
     - name: 检出仓库代码
       uses: actions/checkout@v4
 
-    - name: 设置 Go 编译环境
-      uses: actions/setup-go@v5
+    - name: 配置 .NET 8 SDK
+      uses: actions/setup-dotnet@v4
       with:
-        go-version: '1.22'
+        dotnet-version: '8.0.x'
 
-    - name: 编译静态单文件 EXE
+    - name: 编译发布原生单文件 EXE
       run: |
-        go build -ldflags="-s -w" -o PhotoDeduplicator.exe main.go
+        dotnet publish PhotoDeduplicatorGUI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o dist
 
-    - name: 上传 EXE 产物供下载
-      uses: actions/upload-artifact@v4
+    - name: 确定发布版本号 (Tag)
+      id: tag_version
+      shell: bash
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        else
+          echo "TAG_NAME=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: 自动发布到 GitHub Releases
+      uses: softprops/action-gh-release@v2
       with:
-        name: PhotoDeduplicator-Windows
-        path: PhotoDeduplicator.exe
+        tag_name: ${{ steps.tag_version.outputs.TAG_NAME }}
+        name: "PhotoDeduplicator GUI ${{ steps.tag_version.outputs.TAG_NAME }}"
+        body: |
+          ### 🎉 Windows 照片深度去重与智能年月归档工具 (GUI 窗口版)
+
+          #### 🚀 软件下载
+          请在下方 **Assets** 区域直接下载 **`PhotoDeduplicatorGUI.exe`**，双击即可运行，绿色单文件，无需安装任何运行库！
+
+          #### ✨ 核心功能
+          - **多源文件夹选择**：支持通过按钮或直接批量拖拽多个照片文件夹进列表。
+          - **单一归档目标**：一键选定整理后归档的最终目录。
+          - **智能分类去重**：
+            1. **完全重复（同名同大小）**：自动去重，提取 Exif 拍摄日期按 `年/月/` 目录分层归档，多余副本跳过。
+            2. **同名不同大小**：自动存入 `人工筛选_同名不同大小/`，附带字节大小标识。
+            3. **同大小不同名**：自动存入 `人工筛选_同大小不同名/` 集中等待人工甄别。
+            4. **安全模式**：纯复制模式，绝不误删原图。
+          - **多线程异步处理**：大批量照片扫描整理过程中界面流畅不卡死，实时进度条与详细日志。
+        draft: false
+        prerelease: false
+        files: |
+          dist/PhotoDeduplicatorGUI.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
