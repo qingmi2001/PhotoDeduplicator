@@ -30,13 +30,14 @@ namespace PhotoDeduplicatorGUI
 
     public class MainForm : Form
     {
-        // 控件列表
         private ListBox lstSources = null!;
         private Button btnAddSource = null!;
         private Button btnRemoveSource = null!;
         private Button btnClearSources = null!;
         private TextBox txtDest = null!;
         private Button btnSelectDest = null!;
+        private Label lblDestFreeSpace = null!;
+        private Label lblDestTip = null!;
         private Button btnStart = null!;
         private ProgressBar progressBar = null!;
         private Label lblStatus = null!;
@@ -61,8 +62,8 @@ namespace PhotoDeduplicatorGUI
         private void InitializeComponent()
         {
             Text = "Windows 照片深度去重与智能年月归档工具 (GUI版)";
-            Size = new Size(820, 720);
-            MinimumSize = new Size(760, 640);
+            Size = new Size(840, 760);
+            MinimumSize = new Size(780, 680);
             StartPosition = FormStartPosition.CenterScreen;
             Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
             BackColor = Color.FromArgb(248, 249, 250);
@@ -70,16 +71,16 @@ namespace PhotoDeduplicatorGUI
             // 1. 源文件夹区域
             var grpSource = new GroupBox
             {
-                Text = "1. 源照片文件夹 (支持添加多个，支持拖拽文件夹至下方列表)",
+                Text = "1. 源照片文件夹 (支持添加多个，支持直接将文件夹拖拽至下方列表)",
                 Location = new Point(16, 12),
-                Size = new Size(770, 180),
+                Size = new Size(790, 175),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
             lstSources = new ListBox
             {
                 Location = new Point(16, 26),
-                Size = new Size(620, 140),
+                Size = new Size(640, 135),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
                 AllowDrop = true
             };
@@ -89,7 +90,7 @@ namespace PhotoDeduplicatorGUI
             btnAddSource = new Button
             {
                 Text = "➕ 添加文件夹",
-                Location = new Point(648, 26),
+                Location = new Point(668, 26),
                 Size = new Size(110, 36),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right,
                 BackColor = Color.FromArgb(235, 243, 250)
@@ -99,7 +100,7 @@ namespace PhotoDeduplicatorGUI
             btnRemoveSource = new Button
             {
                 Text = "➖ 移除选中",
-                Location = new Point(648, 72),
+                Location = new Point(668, 72),
                 Size = new Size(110, 36),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right
             };
@@ -114,7 +115,7 @@ namespace PhotoDeduplicatorGUI
             btnClearSources = new Button
             {
                 Text = "🗑️ 清空列表",
-                Location = new Point(648, 118),
+                Location = new Point(668, 118),
                 Size = new Size(110, 36),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right
             };
@@ -125,16 +126,16 @@ namespace PhotoDeduplicatorGUI
             // 2. 目标文件夹区域
             var grpDest = new GroupBox
             {
-                Text = "2. 整理后保存的目标文件夹 (单一归档目录)",
-                Location = new Point(16, 202),
-                Size = new Size(770, 76),
+                Text = "2. 整理后保存的目标文件夹 (单一归档目录，自动防爆仓检测)",
+                Location = new Point(16, 195),
+                Size = new Size(790, 110),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
             txtDest = new TextBox
             {
-                Location = new Point(16, 28),
-                Size = new Size(620, 30),
+                Location = new Point(16, 26),
+                Size = new Size(640, 27),
                 ReadOnly = true,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 PlaceholderText = "请点击右侧按钮选择保存整理结果的文件夹..."
@@ -143,29 +144,48 @@ namespace PhotoDeduplicatorGUI
             btnSelectDest = new Button
             {
                 Text = "📁 选择目标...",
-                Location = new Point(648, 25),
-                Size = new Size(110, 36),
+                Location = new Point(668, 22),
+                Size = new Size(110, 34),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right,
                 BackColor = Color.FromArgb(235, 243, 250)
             };
             btnSelectDest.Click += BtnSelectDest_Click;
 
-            grpDest.Controls.AddRange(new Control[] { txtDest, btnSelectDest });
+            lblDestFreeSpace = new Label
+            {
+                Text = "目标盘剩余空间：尚未选择目标文件夹",
+                Location = new Point(16, 58),
+                Size = new Size(760, 20),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(73, 80, 87)
+            };
+
+            lblDestTip = new Label
+            {
+                Text = "💡 提示：目标盘剩余空间需大于所选照片总大小。程序在开始复制前会自动精准核验，防止磁盘爆仓。",
+                Location = new Point(16, 80),
+                Size = new Size(760, 20),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                ForeColor = Color.FromArgb(108, 117, 125)
+            };
+
+            grpDest.Controls.AddRange(new Control[] { txtDest, btnSelectDest, lblDestFreeSpace, lblDestTip });
 
             // 3. 执行与进度区域
             var grpAction = new GroupBox
             {
                 Text = "3. 处理状态与实时日志",
-                Location = new Point(16, 288),
-                Size = new Size(770, 375),
+                Location = new Point(16, 315),
+                Size = new Size(790, 390),
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
 
             btnStart = new Button
             {
                 Text = "🚀 开始智能去重与归档",
-                Location = new Point(16, 26),
-                Size = new Size(742, 42),
+                Location = new Point(16, 24),
+                Size = new Size(762, 42),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 BackColor = Color.FromArgb(13, 110, 253),
                 ForeColor = Color.White,
@@ -176,8 +196,8 @@ namespace PhotoDeduplicatorGUI
 
             progressBar = new ProgressBar
             {
-                Location = new Point(16, 78),
-                Size = new Size(742, 18),
+                Location = new Point(16, 74),
+                Size = new Size(762, 18),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 Minimum = 0,
                 Maximum = 100,
@@ -187,16 +207,16 @@ namespace PhotoDeduplicatorGUI
             lblStatus = new Label
             {
                 Text = "状态：准备就绪。请添加源文件夹并设置目标保存文件夹。",
-                Location = new Point(16, 102),
-                Size = new Size(742, 22),
+                Location = new Point(16, 98),
+                Size = new Size(762, 22),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 ForeColor = Color.FromArgb(108, 117, 125)
             };
 
             txtLog = new TextBox
             {
-                Location = new Point(16, 128),
-                Size = new Size(742, 235),
+                Location = new Point(16, 124),
+                Size = new Size(762, 250),
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
                 Multiline = true,
                 ReadOnly = true,
@@ -257,7 +277,28 @@ namespace PhotoDeduplicatorGUI
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 txtDest.Text = dialog.SelectedPath;
+                UpdateDestDriveDisplay(dialog.SelectedPath);
             }
+        }
+
+        private void UpdateDestDriveDisplay(string path)
+        {
+            try
+            {
+                string root = Path.GetPathRoot(Path.GetFullPath(path)) ?? string.Empty;
+                if (!string.IsNullOrEmpty(root))
+                {
+                    var drive = new DriveInfo(root);
+                    double freeGb = drive.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+                    double totalGb = drive.TotalSize / (1024.0 * 1024.0 * 1024.0);
+                    lblDestFreeSpace.Text = $"目标盘 [{drive.Name}] 当前可用剩余: {freeGb:F2} GB / 总容量: {totalGb:F2} GB";
+                    lblDestFreeSpace.ForeColor = freeGb < 5.0 ? Color.Crimson : Color.FromArgb(40, 167, 69);
+                    return;
+                }
+            }
+            catch { }
+            lblDestFreeSpace.Text = "目标盘剩余空间：已选择有效文件夹";
+            lblDestFreeSpace.ForeColor = Color.FromArgb(73, 80, 87);
         }
 
         private async void BtnStart_Click(object? sender, EventArgs e)
@@ -277,11 +318,10 @@ namespace PhotoDeduplicatorGUI
 
             var sourceDirs = lstSources.Items.Cast<string>().ToList();
 
-            // 禁用按钮防止重复操作
             SetUIEnabled(false);
             txtLog.Clear();
             progressBar.Value = 0;
-            lblStatus.Text = "状态：正在多目录并发扫描照片...";
+            lblStatus.Text = "状态：正在扫描所选文件夹及深度计算照片总容量...";
 
             try
             {
@@ -339,6 +379,7 @@ namespace PhotoDeduplicatorGUI
             // 1. 扫描所有文件
             var allFiles = new List<PhotoItem>();
             var scannedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            long totalSourceBytes = 0;
 
             foreach (var sDir in sourceDirs)
             {
@@ -357,6 +398,7 @@ namespace PhotoDeduplicatorGUI
                         if (!ValidExts.Contains(ext)) continue;
 
                         var fi = new FileInfo(file);
+                        totalSourceBytes += fi.Length;
                         DateTime shootDate = ExtractShootDate(file, fi.LastWriteTime);
 
                         allFiles.Add(new PhotoItem
@@ -375,7 +417,8 @@ namespace PhotoDeduplicatorGUI
             }
 
             int totalFound = allFiles.Count;
-            AppendLog($"扫描完成！共获取到 {totalFound} 个有效媒体文件。");
+            double totalGb = totalSourceBytes / (1024.0 * 1024.0 * 1024.0);
+            AppendLog($"扫描完成！共获取到 {totalFound} 个媒体文件，总大小约为: {totalGb:F2} GB。");
 
             if (totalFound == 0)
             {
@@ -383,7 +426,58 @@ namespace PhotoDeduplicatorGUI
                 return;
             }
 
-            // 2. 识别完全重复（第一类：同名同大小）
+            // 2. 核心防爆仓检测 (零耗时内核检测)
+            string root = Path.GetPathRoot(Path.GetFullPath(destDir)) ?? string.Empty;
+            if (!string.IsNullOrEmpty(root))
+            {
+                try
+                {
+                    var drive = new DriveInfo(root);
+                    long freeBytes = drive.AvailableFreeSpace;
+                    double freeGb = freeBytes / (1024.0 * 1024.0 * 1024.0);
+
+                    AppendLog($"[磁盘检测] 目标盘 ({drive.Name}) 可用剩余: {freeGb:F2} GB | 待处理照片总大小: {totalGb:F2} GB");
+
+                    // 如果目标剩余磁盘空间小于源照片总大小
+                    if (freeBytes < totalSourceBytes)
+                    {
+                        bool userContinue = false;
+                        Invoke(new Action(() =>
+                        {
+                            var dr = MessageBox.Show(
+                                $"【⚠️ 目标磁盘空间不足警报 (防爆仓)】\n\n" +
+                                $"• 待整理照片总大小: {totalGb:F2} GB\n" +
+                                $"• 目标磁盘 ({drive.Name}) 剩余空间: {freeGb:F2} GB\n\n" +
+                                $"注意：目标磁盘剩余空间小于照片总容量，继续复制将极可能导致【磁盘爆满/系统卡顿】！\n\n" +
+                                $"建议操作：点击【否】中止操作，清理磁盘或更换为容量更大的硬盘。\n\n" +
+                                $"是否仍然强行继续？",
+                                "磁盘空间不足预警",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Warning,
+                                MessageBoxDefaultButton.Button2);
+                            userContinue = (dr == DialogResult.Yes);
+                        }));
+
+                        if (!userContinue)
+                        {
+                            AppendLog("🛑 用户已取消整理：已成功防止磁盘爆仓。");
+                            UpdateStatus("状态：由于目标磁盘剩余空间不足，任务已取消。", 0);
+                            return;
+                        }
+                        AppendLog("⚠️ 用户选择忽略警告强行继续执行。");
+                    }
+                    else
+                    {
+                        AppendLog("✅ 磁盘空间充裕，安全检测通过！");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"⚠️ 磁盘空间读取失败: {ex.Message}");
+                }
+            }
+
+            // 3. 识别完全重复（第一类：同名同大小）
             var nameSizeMap = new Dictionary<string, List<PhotoItem>>(StringComparer.OrdinalIgnoreCase);
             foreach (var f in allFiles)
             {
@@ -413,7 +507,7 @@ namespace PhotoDeduplicatorGUI
                 }
             }
 
-            // 3. 构建第二类与第三类筛选索引
+            // 4. 构建第二类与第三类筛选索引
             var nameMap = new Dictionary<string, List<PhotoItem>>(StringComparer.OrdinalIgnoreCase);
             var sizeMap = new Dictionary<long, List<PhotoItem>>();
 
@@ -434,7 +528,7 @@ namespace PhotoDeduplicatorGUI
                 sList.Add(f);
             }
 
-            // 4. 建立分类输出路径
+            // 5. 建立分类输出路径
             string dirArchived = Path.Combine(destDir, "整理归档");
             string dirDiffSizeSameName = Path.Combine(destDir, "人工筛选_同名不同大小");
             string dirDiffNameSameSize = Path.Combine(destDir, "人工筛选_同大小不同名");
@@ -492,14 +586,14 @@ namespace PhotoDeduplicatorGUI
 
             watch.Stop();
 
-            // 5. 写入报告文件
+            // 6. 写入统计报告
             string reportPath = Path.Combine(destDir, "去重与归档统计报告.txt");
             var sb = new StringBuilder();
             sb.AppendLine("================ 照片去重与归档统计报告 ================");
             sb.AppendLine($"生成时间: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine($"处理耗时: {watch.Elapsed.TotalSeconds:F2} 秒");
             sb.AppendLine();
-            sb.AppendLine($"1. 扫描总文件数:             {totalFound}");
+            sb.AppendLine($"1. 扫描总文件数:             {totalFound} (总体积约 {totalGb:F2} GB)");
             sb.AppendLine($"2. 成功按年月归档文件数:     {countArchived} (存放于: 整理归档/)");
             sb.AppendLine($"3. 完全重复已去重文件数:     {skippedCount} (节省空间约 {savedBytes / (1024.0 * 1024.0):F2} MB)");
             sb.AppendLine($"4. 同名不同大小(待核对)数:   {countSameNameDiffSize} (存放于: 人工筛选_同名不同大小/)");
@@ -520,6 +614,7 @@ namespace PhotoDeduplicatorGUI
             {
                 MessageBox.Show(
                     $"照片整理已全部完成！\n\n" +
+                    $"• 扫描总大小: {totalGb:F2} GB\n" +
                     $"• 归档保存: {countArchived} 张\n" +
                     $"• 完全重复去重: {skippedCount} 张 (省空间 {savedBytes / (1024.0 * 1024.0):F2} MB)\n" +
                     $"• 人工筛选(同名不同大小): {countSameNameDiffSize} 张\n" +
