@@ -1,1 +1,29 @@
+name: Build Photo Deduplicator EXE
 
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: 检出仓库代码
+      uses: actions/checkout@v4
+
+    - name: 设置 Go 编译环境
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+
+    - name: 编译静态单文件 EXE
+      run: |
+        go build -ldflags="-s -w" -o PhotoDeduplicator.exe main.go
+
+    - name: 上传 EXE 产物供下载
+      uses: actions/upload-artifact@v4
+      with:
+        name: PhotoDeduplicator-Windows
+        path: PhotoDeduplicator.exe
